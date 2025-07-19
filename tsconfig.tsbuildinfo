@@ -1,0 +1,1 @@
+{"root":["./src/globaldelaraction.ts","./src/index.ts","./src/utils.ts","./src/database/contentschema.ts","./src/database/linkschema.ts","./src/database/pdfschema.ts","./src/database/tagschema.ts","./src/database/userschema.ts","./src/middleware/authmiddleware.ts"],"version":"5.8.3"}
