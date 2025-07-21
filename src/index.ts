@@ -23,6 +23,7 @@ app.use(cors({
   origin: [ "https://second-brain-frontend-zruo.vercel.app",
 "http://localhost:5173"],
   credentials: true,
+  exposedHeaders: ['Authorization'],
 }))
 app.post('/user/signup', async (req: Request, res: Response):Promise<any> => {
   try {
