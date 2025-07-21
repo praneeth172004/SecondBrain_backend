@@ -6,7 +6,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc -b",
     "dev": "nodemon dist/index.js",
-    "start": "npm run build && npm run dev"
+    "run": "npm run build && npm run dev",
+    "start" : "node src/index.ts"
   },
   "keywords": [],
   "author": "",
