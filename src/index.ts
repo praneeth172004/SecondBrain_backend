@@ -230,22 +230,22 @@ const upload=multer({
   }
 })
 
-app.post("/user/upload/pdf",userMiddleware,upload.single('pdf'),async(req,res)=>{
-  
-  try{
-    const fileUrl=`http://localhost:2000/uploads/${req.file?.filename}`;
-    const newPdf=new Content({
-      title:req.body.title,
+app.post("/user/upload/pdf", userMiddleware, upload.single('pdf'), async (req: Request, res: Response) => {
+  const url = process.env.FILE_URL;
+  try {
+    const fileUrl = `${url}${req.file?.filename}`;
+    const newPdf = new Content({
+      title: req.body.title,
       fileUrl,
-      type:req.body.type,
+      type: req.body.type,
       //@ts-ignore
-      userId:req.userId,
-    })
-    const saved=await newPdf.save();
+      userId: req.userId,
+    });
+    const saved = await newPdf.save();
     res.status(201).json({
       fileUrl
     });
-  }catch (err) {
+  } catch (err) {
     console.error(err);
     res.status(500).json({ msg: 'Failed to upload PDF' });
   }
