@@ -7,7 +7,7 @@
     "build": "tsc -b",
     "dev": "nodemon dist/index.js",
     "run": "npm run build && npm run dev",
-    "start" : "node src/index.ts"
+    "start" : "node src/index.js"
   },
   "keywords": [],
   "author": "",
