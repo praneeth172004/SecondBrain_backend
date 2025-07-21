@@ -13,6 +13,10 @@ import multer from 'multer'
 import path from "path";
 import pdf from "./Database/pdfSchema"
 import fs from "fs";
+//@ts-ignore
+import { v2 as cloudinary } from "cloudinary";
+//@ts-ignore
+import { CloudinaryStorage } from "multer-storage-cloudinary";
 import dotenv from "dotenv"
 dotenv.config();
 
@@ -219,28 +223,81 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 
-const storage=multer.diskStorage({
-  destination:(req,file,cb)=>{
-    cb(null,'./uploads')
-  },
-  filename:(req,file,cb)=>{
-    cb(null,`${Date.now()}-${file.originalname}`);
-  }
-})
+// const storage=multer.diskStorage({
+//   destination:(req,file,cb)=>{
+//     cb(null,'./uploads')
+//   },
+//   filename:(req,file,cb)=>{
+//     cb(null,`${Date.now()}-${file.originalname}`);
+//   }
+// })
 
-const upload=multer({
-  storage,
-  fileFilter:(req,file,cb)=>{
-    const ext=path.extname(file.originalname);
-    if(ext!=='.pdf') return cb(new Error("Only PDF are allowed"))
-    cb(null,true)
-  }
-})
+// const upload=multer({
+//   storage,
+//   fileFilter:(req,file,cb)=>{
+//     const ext=path.extname(file.originalname);
+//     if(ext!=='.pdf') return cb(new Error("Only PDF are allowed"))
+//     cb(null,true)
+//   }
+// })
+
+// app.post("/user/upload/pdf", userMiddleware, upload.single('pdf'), async (req: Request, res: Response) => {
+//   const url = process.env.FILE_URL;
+//   try {
+//     const fileUrl = `${url}${req.file?.filename}`;
+//     const newPdf = new Content({
+//       title: req.body.title,
+//       fileUrl,
+//       type: req.body.type,
+//       //@ts-ignore
+//       userId: req.userId,
+//     });
+//     const saved = await newPdf.save();
+//     res.status(201).json({
+//       fileUrl
+//     });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ msg: 'Failed to upload PDF' });
+//   }
+// })
+
+
+
+// Cloudinary config
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME!,
+  api_key: process.env.CLOUDINARY_API_KEY!,
+  api_secret: process.env.CLOUDINARY_API_SECRET!,
+});
+
+// Cloudinary storage for multer
+const cloudinaryStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "pdf_uploads",
+    resource_type: "raw", // Important for non-image files like PDFs
+    format: async () => "pdf", // enforce pdf format
+    //@ts-ignore
+    public_id: (req, file) => `${Date.now()}-${file.originalname}`,
+  },
+});
+
+const upload = multer({
+  storage: cloudinaryStorage,
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (ext !== ".pdf") return cb(new Error("Only PDFs are allowed"));
+    cb(null, true);
+  },
+});
+
+
 
 app.post("/user/upload/pdf", userMiddleware, upload.single('pdf'), async (req: Request, res: Response) => {
-  const url = process.env.FILE_URL;
   try {
-    const fileUrl = `${url}${req.file?.filename}`;
+    const fileUrl = (req.file as any)?.path; // Cloudinary returns .path with public URL
+
     const newPdf = new Content({
       title: req.body.title,
       fileUrl,
@@ -248,15 +305,15 @@ app.post("/user/upload/pdf", userMiddleware, upload.single('pdf'), async (req: R
       //@ts-ignore
       userId: req.userId,
     });
-    const saved = await newPdf.save();
-    res.status(201).json({
-      fileUrl
-    });
+
+    await newPdf.save();
+    res.status(201).json({ fileUrl });
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: 'Failed to upload PDF' });
   }
-})
+});
+
 const PORT=process.env.PORT ;
 
 app.listen(PORT, () => {
