@@ -250,10 +250,10 @@ app.post("/user/upload/pdf",userMiddleware,upload.single('pdf'),async(req,res)=>
     res.status(500).json({ msg: 'Failed to upload PDF' });
   }
 })
+const PORT=process.env.PORT ;
 
-
-app.listen(2000, () => {
-  console.log("Server running at " + 2000);
+app.listen(PORT, () => {
+  console.log("Server running at " + PORT);
   const dbUrl = process.env.DATABASE_URL;
   if (!dbUrl) {
     console.error("DATABASE_URL is not defined in environment variables.");
