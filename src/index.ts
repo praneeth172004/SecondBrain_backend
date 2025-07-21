@@ -254,7 +254,12 @@ app.post("/user/upload/pdf",userMiddleware,upload.single('pdf'),async(req,res)=>
 
 app.listen(2000, () => {
   console.log("Server running at " + 2000);
-  mongoose.connect("mongodb+srv://sunnypraneeth3119:311977@cluster0.1dh2i2b.mongodb.net/secondbrain")
+  const dbUrl = process.env.DATABASE_URL;
+  if (!dbUrl) {
+    console.error("DATABASE_URL is not defined in environment variables.");
+    process.exit(1);
+  }
+  mongoose.connect(dbUrl)
     .then(() => {
       console.log("Mongoose Successfully Connected");
     })
