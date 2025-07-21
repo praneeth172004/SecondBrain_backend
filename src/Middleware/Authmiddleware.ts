@@ -22,7 +22,7 @@ interface JwtPayload {
   userId: string;
 }
 
-export const useMiddleware = (req: Request, res: Response, next: NextFunction) => {
+export const userMiddleware = (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
   console.log("Auth Header:", authHeader);
 
