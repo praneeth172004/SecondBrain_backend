@@ -13,7 +13,8 @@ import multer from 'multer'
 import path from "path";
 import pdf from "./Database/pdfSchema"
 import fs from "fs";
-
+import dotenv from "dotenv"
+dotenv.config();
 
 
 const app = express();
@@ -65,10 +66,13 @@ app.post("/user/login", async (req: express.Request, res: express.Response): Pro
       if (!isMatch) {
         return res.status(401).json({ msg: "Invalid credentials" });
       }
-
+      const secret = process.env.JWT_SECRET;
+      if (!secret) {
+        throw new Error("JWT_SECRET is not defined in environment variables.");
+      }
       const token = jwt.sign(
         { userId: existingUser._id },
-        "default_secret",
+        secret,
         { expiresIn: "1h" }
       );
 
