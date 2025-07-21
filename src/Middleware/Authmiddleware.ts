@@ -1,51 +1,42 @@
+import { Request, Response, NextFunction } from "express";
+import jwt, { JwtPayload } from "jsonwebtoken";
 
-//    const header = req.headers["authorization"];
-//    console.log("header",header);
-   
-//    if (!header) {
-//     return res.status(401).json({ message: "Authorization header missing" });
-//   }
+// Extend Express Request to include userId
 
 
-//   const parts = header.split(" ");
-//   if (parts.length !== 2 || parts[0] !== "Bearer") {
-//     return res
-//       .status(401)
-//       .json({ message: "Authorization header must be in the format: Bearer <token>" });
-//   }
-
-//   const token = authHeader.split(" ")[1];
-import jwt from 'jsonwebtoken';
-import { Request, Response, NextFunction } from 'express';
-
-interface JwtPayload {
-  userId: string;
-}
-
-export const userMiddleware = (req: Request, res: Response, next: NextFunction) => {
+export const userMiddleware = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   const authHeader = req.headers.authorization;
-  console.log("Auth Header:", authHeader);
+  console.log(authHeader);
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "No token provided" });
+    res.status(401).json({ message: "No token provided" });
+    return;
   }
 
   const token = authHeader.split(" ")[1];
-  const secret = process.env.JWT_SECRET;
+  const jwtSecret = process.env.JWT_SECRET;
 
-  if (!secret) {
-    console.error("JWT_SECRET is not defined in environment variables!");
-    return res.status(500).json({ message: "Server config error" });
+  if (!jwtSecret) {
+    res.status(500).json({ message: "JWT secret not configured" });
+    return;
   }
 
   try {
-    const decoded = jwt.verify(token, secret) as JwtPayload;
-    console.log("Decoded token:", decoded);
+    const decoded = jwt.verify(token, jwtSecret) as JwtPayload;
+    console.log(decoded);
 
-    req.userId = decoded.userId;
-    next();
+    if (decoded && decoded.userId) {
+      req.userId = decoded.userId;
+      next();
+    } else {
+      res.status(401).json({ message: "Unauthorized User" });
+    }
   } catch (err) {
-    console.error("JWT verification failed:", err);
-    return res.status(401).json({ message: "Invalid or expired token" });
+    console.log("Token verification failed:", err);
+    res.status(401).json({ message: "Invalid or expired token" });
   }
 };
