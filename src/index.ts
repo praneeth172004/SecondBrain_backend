@@ -21,7 +21,7 @@ const app = express();
 app.use('/uploads', express.static('uploads'));
 app.use(express.json());
 app.use(cors({
-  origin: [ "https://second-brain-frontend-zruo.vercel.app",
+  origin: [ "https://second-brain-frontend-five.vercel.app","https://second-brain-frontend-zruo.vercel.app",
 "http://localhost:5173"],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
