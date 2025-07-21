@@ -21,6 +21,8 @@ export const userMiddleware = async (req: Request, res: Response, next: NextFunc
 
 //   const token = authHeader.split(" ")[1];
 const authHeader = req.headers.authorization;
+console.log(authHeader);
+
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({ message: "No token provided" });
   }
@@ -30,6 +32,7 @@ const authHeader = req.headers.authorization;
    try {
       const decoded = jwt.verify(token as string, process.env.JWT_SECRET || "default_secret");
       console.log(decoded);
+
       
       if (decoded) {
 
