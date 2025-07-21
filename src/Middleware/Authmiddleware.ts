@@ -30,8 +30,12 @@ console.log(authHeader);
   console.log(authHeader);
   
   const token = authHeader.split(" ")[1];
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) {
+    return res.status(500).json({ message: "JWT secret not configured" });
+  }
    try {
-      const decoded = jwt.verify(token as string, process.env.JWT_SECRET || "default_secret");
+      const decoded = jwt.verify(token as string, jwtSecret);
       console.log(decoded);
 
       
