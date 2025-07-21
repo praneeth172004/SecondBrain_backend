@@ -20,7 +20,7 @@ const app = express();
 app.use('/uploads', express.static('uploads'));
 app.use(express.json());
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: "https://second-brain-frontend-zruo.vercel.app/",
   credentials: true,
 }))
 app.post('/user/signup', async (req: Request, res: Response):Promise<any> => {
