@@ -27,6 +27,7 @@ console.log(authHeader);
     return res.status(401).json({ message: "No token provided" });
   }
   console.log(process.env.JWT_SECRET);
+  console.log(authHeader);
   
   const token = authHeader.split(" ")[1];
    try {
