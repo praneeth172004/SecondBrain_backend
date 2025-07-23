@@ -1,333 +1,141 @@
+//@ts-ignore
+
 import express from "express";
-import User from "./Database/userSchema";
-import bcrypt, { hash } from "bcrypt";
-import { Request, Response } from "express";
-import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
-import Content from "./Database/contentSchema"
-import { userMiddleware } from "./Middleware/Authmiddleware";
 import cors from "cors";
-import Link from "./Database/linkSchema";
-import { random } from "./utils";
-import multer from 'multer'
+import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
+import multer from "multer";
 import path from "path";
-import pdf from "./Database/pdfSchema"
 import fs from "fs";
-//@ts-ignore
+import dotenv from "dotenv";
+import { Request, Response } from "express";
+
+// Database Schemas
+import User from "./Database/userSchema";
+import Content from "./Database/contentSchema";
+import Link from "./Database/linkSchema";
+
+// Middleware
+import { userMiddleware } from "./Middleware/Authmiddleware";
+
+// Cloudinary
 import { v2 as cloudinary } from "cloudinary";
-//@ts-ignore
 import { CloudinaryStorage } from "multer-storage-cloudinary";
-import dotenv from "dotenv"
+
+// Utils
+import { random } from "./utils";
+
 dotenv.config();
 
-
 const app = express();
-app.use('/uploads', express.static('uploads'));
 app.use(express.json());
 app.use(cors({
-  origin: [ "https://second-brain-frontend-five.vercel.app","https://second-brain-frontend-zruo.vercel.app",
-"http://localhost:5173"],
+  origin: ["https://second-brain-frontend-five.vercel.app", "https://second-brain-frontend-zruo.vercel.app", "http://localhost:5173"],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}))
-app.post('/user/signup', async (req: Request, res: Response):Promise<any> => {
-  try {
-    const { username, password,email } = req.body;
+}));
 
-    if (!username) return res.status(400).json({ msg: "Please enter a username" });
-    if (!password) return res.status(400).json({ msg: "Please enter a password" });
-    if(!email) return res.status(400).json({msg:"Please enter an email"});
+// Cloudinary config
+
+
+// ROUTES
+
+// Signup
+//@ts-ignore
+app.post("/user/signup", async (req: Request, res: Response) => {
+  try {
+    const { username, password, email } = req.body;
+    if (!username || !password || !email) return res.status(400).json({ msg: "Missing fields" });
 
     const existingUser = await User.findOne({ username });
-    console.log(existingUser);
-    
     if (existingUser) return res.status(400).json({ msg: "User already exists" });
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = await User.create({ email,username, password: hashedPassword });
+    const newUser = await User.create({ username, password: hashedPassword, email });
 
-    return res.status(201).json({ msg: "Successfully signed up", userId: newUser._id });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ msg: "Internal server error" });
+    res.status(201).json({ msg: "Signup successful", userId: newUser._id });
+  } catch (err) {
+    res.status(500).json({ msg: "Internal server error" });
   }
 });
+//@ts-ignore
 
-app.post("/user/login", async (req: express.Request, res: express.Response): Promise<any> => {
+// Login
+app.post("/user/login", async (req: Request, res: Response) => {
   try {
     const { username, password } = req.body;
+    const user = await User.findOne({ username });
+    if (!user) return res.status(404).json({ msg: "User not found" });
 
-    if (!username) return res.status(400).json({ msg: "Please enter a username" });
-    if (!password) return res.status(400).json({ msg: "Please enter a password" });
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(401).json({ msg: "Invalid credentials" });
 
-    const existingUser = await User.findOne({ username });
-    if (!existingUser) {
-      return res.status(404).json({ msg: "User not found" });
-    } else {
-
-      const isMatch = await bcrypt.compare(password, existingUser.password);
-      if (!isMatch) {
-        return res.status(401).json({ msg: "Invalid credentials" });
-      }
-      const secret = process.env.JWT_SECRET;
-      if (!secret) {
-        throw new Error("JWT_SECRET is not defined in environment variables.");
-      }
-      const token = jwt.sign(
-        { userId: existingUser._id },
-        secret,
-        { expiresIn: "1h" }
-      );
-
-      return res.status(200).json({ msg: "Login successful", token });
-    }
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET!, { expiresIn: "1h" });
+    res.json({ token });
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ msg: "Internal server error" });
+    res.status(500).json({ msg: "Login failed" });
   }
 });
 
+// Upload PDF
 
 
-app.get("/user/details", userMiddleware, async (req: Request, res: Response): Promise<any> => {
-  const id = req.userId;
-  console.log(id);
-
-
+// Add Content
+app.post("/user/addcontent", userMiddleware, async (req: Request, res: Response) => {
   try {
-    if (!id) {
-      return res.json({
-        msg: "No id"
-      })
-    }
-    const user = await User.findOne({ _id: id }).select("-password");
-    return res.json({ user });
-
+    const { title, link, type, content, tags } = req.body;
+    await Content.create({ title, link, type, content, tags, userId: req.userId });
+    res.status(201).json({ msg: "Content added" });
   } catch (err) {
-    return res.status(500).json({ msg: "Error fetching user data" });
+    res.status(500).json({ msg: "Failed to add content" });
   }
 });
 
-
-
-app.post("/user/addcontent",userMiddleware,async(req:Request,res:Response):Promise<any>=>{
-  const {title,link,type,content,tags}=req.body;
-  console.log(req.body);
-  try{
-    await Content.create({
-    link,
-    title,
-    type,
-    content,
-    userId:req.userId,
-    tags
-  })
-  return res.status(201).json({msg:"Content added"})
-  }catch(err){
-    console.log(err);
-    return res.status(500).json({ msg: "Error fetching user data" });
-  }
-  
-})
-
-
-app.get("/user/content",userMiddleware,async(req:Request,res:Response):Promise<any>=>{
-
-  const userId=req.userId;
-  const content =await Content.find({userId:userId}).populate("userId","username")
-  return res.json({
-    content
-  })
-})
-
-
-app.delete("/user/content", userMiddleware, async (req: Request, res: Response): Promise<any> => {
-
-  const userId = req.userId;
-  const parseResult = req.query;
-
-  if (!userId) {
-    return res.status(401).json({ msg: "User ID not found" });
-  }
-
-  const contentId = parseResult.id
-
-  const data = await Content.findOneAndDelete({ _id: contentId, userId });
-
-  if (!data) {
-    return res.status(404).json({ msg: "Content not found or not authorized to delete" });
-  }
-
-  return res.json({ msg: "Content successfully deleted" });
+// Get Content
+app.get("/user/content", userMiddleware, async (req: Request, res: Response) => {
+  const content = await Content.find({ userId: req.userId }).populate("userId", "username");
+  res.json({ content });
 });
 
-
-app.post("/user/share", userMiddleware, async (req: Request, res: Response): Promise<any> => {
+// Delete Content
+//@ts-ignore
+app.delete("/user/content", userMiddleware, async (req: Request, res: Response) => {
+  const contentId = req.query.id;
+  const data = await Content.findOneAndDelete({ _id: contentId, userId: req.userId });
+  if (!data) return res.status(404).json({ msg: "Content not found or not authorized" });
+  res.json({ msg: "Content deleted" });
+});
+//@ts-ignore
+// Share Link
+app.post("/user/share", userMiddleware, async (req: Request, res: Response) => {
   const { share } = req.body;
+  const userId = req.userId;
 
-  const userid = req.userId;
-
-  try {
-    if (share) {
-      const exisitinglink = await Link.findOne({ userId: userid });
-
-      if (exisitinglink) {
-        return res.status(200).json({ msg: "Link already shared", hash: exisitinglink.hash });
-      }
-
-      const hash = random(10);
-      await Link.create({ userId: userid, hash });
-
-      return res.status(201).json({ msg: "Link is shared", hash });
-    } else {
-      await Link.deleteOne({ userId: userid });
-      return res.status(200).json({ msg: "Share link removed" });
-    }
-  } catch (err) {
-    console.error("Error in /user/share:", err);
-    return res.status(500).json({ msg: "Internal server error" });
+  if (share) {
+    const existing = await Link.findOne({ userId });
+    if (existing) return res.json({ msg: "Already shared", hash: existing.hash });
+    const hash = random(10);
+    await Link.create({ userId, hash });
+    res.status(201).json({ msg: "Link shared", hash });
+  } else {
+    await Link.deleteOne({ userId });
+    res.json({ msg: "Share removed" });
   }
 });
-
-app.get("/chek-auth",async(req:Request,res:Response):Promise<any>=>{
-  const token=localStorage.getItem("user");
-  if(token){
-    return res.json({
-      token
-    })
-  }else{
-    return res.json({
-      msg:"Please Login"
-    })
-  }
-})
-
-app.get("/user/share/:sharelink",async(req:Request,res:Response):Promise<any>=>{
-  const sharelink=req.params.sharelink;
-   if (!sharelink) {
-    return res.status(400).json({ msg: "Provide the Sharelink" });
-  }
-  const linkDoc = await Link.findOne({ hash: sharelink });
-  if (!linkDoc) {
-    return res.status(404).json({ msg: "Invalid Share Link" });
-  }
-  const content = await Content.find({ userId: linkDoc.userId })
-
-  return res.status(200).json({ content });
-})
-
-const uploadDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir);
-}
-
-
-// const storage=multer.diskStorage({
-//   destination:(req,file,cb)=>{
-//     cb(null,'./uploads')
-//   },
-//   filename:(req,file,cb)=>{
-//     cb(null,`${Date.now()}-${file.originalname}`);
-//   }
-// })
-
-// const upload=multer({
-//   storage,
-//   fileFilter:(req,file,cb)=>{
-//     const ext=path.extname(file.originalname);
-//     if(ext!=='.pdf') return cb(new Error("Only PDF are allowed"))
-//     cb(null,true)
-//   }
-// })
-
-// app.post("/user/upload/pdf", userMiddleware, upload.single('pdf'), async (req: Request, res: Response) => {
-//   const url = process.env.FILE_URL;
-//   try {
-//     const fileUrl = `${url}${req.file?.filename}`;
-//     const newPdf = new Content({
-//       title: req.body.title,
-//       fileUrl,
-//       type: req.body.type,
-//       //@ts-ignore
-//       userId: req.userId,
-//     });
-//     const saved = await newPdf.save();
-//     res.status(201).json({
-//       fileUrl
-//     });
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ msg: 'Failed to upload PDF' });
-//   }
-// })
-
-
-
-// Cloudinary config
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME!,
-  api_key: process.env.CLOUDINARY_API_KEY!,
-  api_secret: process.env.CLOUDINARY_API_SECRET!,
+//@ts-ignore
+// View Shared Content
+app.get("/user/share/:sharelink", async (req: Request, res: Response) => {
+  const linkDoc = await Link.findOne({ hash: req.params.sharelink });
+  if (!linkDoc) return res.status(404).json({ msg: "Invalid Share Link" });
+  const content = await Content.find({ userId: linkDoc.userId });
+  res.json({ content });
 });
 
-// Cloudinary storage for multer
-const cloudinaryStorage = new CloudinaryStorage({
-  cloudinary,
-  params: {
-    folder: "pdf_uploads",
-    resource_type: "raw", // Important for non-image files like PDFs
-    format: async () => "pdf", // enforce pdf format
-    //@ts-ignore
-    public_id: (req, file) => `${Date.now()}-${file.originalname}`,
-  },
-});
-
-const upload = multer({
-  storage: cloudinaryStorage,
-  fileFilter: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (ext !== ".pdf") return cb(new Error("Only PDFs are allowed"));
-    cb(null, true);
-  },
-});
-
-
-
-app.post("/user/upload/pdf", userMiddleware, upload.single('pdf'), async (req: Request, res: Response) => {
-  try {
-    const fileUrl = (req.file as any)?.path; // Cloudinary returns .path with public URL
-
-    const newPdf = new Content({
-      title: req.body.title,
-      fileUrl,
-      type: req.body.type,
-      //@ts-ignore
-      userId: req.userId,
-    });
-
-    await newPdf.save();
-    res.status(201).json({ fileUrl });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ msg: 'Failed to upload PDF' });
-  }
-});
-
-const PORT=process.env.PORT ;
-
+// Start Server
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log("Server running at " + PORT);
-  const dbUrl = process.env.DATABASE_URL;
-  if (!dbUrl) {
-    console.error("DATABASE_URL is not defined in environment variables.");
-    process.exit(1);
-  }
-  mongoose.connect(dbUrl)
-    .then(() => {
-      console.log("Mongoose Successfully Connected");
-    })
-    .catch((err) => {
-      console.log(err);
-    });
+  console.log(`Server running at ${PORT}`);
+  mongoose.connect(process.env.DATABASE_URL!)
+    .then(() => console.log("Connected to MongoDB"))
+    .catch((err) => console.error("MongoDB connection error:", err));
 });
