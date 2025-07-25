@@ -27,7 +27,11 @@ import { CloudinaryStorage } from "multer-storage-cloudinary";
 import { random } from "./utils";
 
 dotenv.config();
-
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME!,
+  api_key: process.env.CLOUDINARY_API_KEY!,
+  api_secret: process.env.CLOUDINARY_API_SECRET!,
+});
 const app = express();
 app.use(express.json());
 app.use(cors({
@@ -36,8 +40,93 @@ app.use(cors({
 }));
 
 // Cloudinary config
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    //@ts-ignore
+    folder: "image_uploads", // optional folder in Cloudinary
+    allowed_formats: ["jpg", "jpeg", "png", "webp"],
+    transformation: [{ width: 800, height: 800, crop: "limit" }],
+  },
+});
+const upload = multer({ storage });
 
+const pdfStorage = new CloudinaryStorage({
+  cloudinary,
+  params: (req, file) => {
+    return {
+      folder: "uploads",
+      resource_type: "auto", // auto-detects pdf/image/video
+      format: file.mimetype === "application/pdf" ? "pdf" : undefined,
+      public_id: file.originalname.split(".")[0],
+    };
+  },
+});
 
+export const uploadPDF = multer({ storage: pdfStorage });
+
+// Upload route
+//@ts-ignore
+app.post("/user/upload/image",userMiddleware, upload.single("image"), async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    const { title, tags, type } = req.body;
+
+    const newContent = new Content({
+      title,
+      tags,
+      type,
+      link: (req.file as any).path,          // Cloudinary image URL
+     
+      content: "image",                      // or any other field you use for identifying type
+      userId: req.userId,                    // assuming you're using auth middleware
+    });
+
+    await newContent.save();
+
+    res.status(201).json({
+      message: "Image uploaded and saved to DB",
+      content: newContent,
+    });
+  } catch (err) {
+    console.error("Error uploading image:", err);
+    res.status(500).json({ error: "Upload failed" });
+  }
+});
+
+//@ts-ignore
+app.post("/user/upload/pdf",userMiddleware, uploadPDF.single("pdf"), async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    const { title, tags, type } = req.body;
+
+    const newContent = new Content({
+      title,
+      tags,
+      type,
+      link: (req.file as any).path,          // Cloudinary image URL
+     
+      content: "pdf",                      // or any other field you use for identifying type
+      userId: req.userId,                    // assuming you're using auth middleware
+    });
+
+    await newContent.save();
+
+    res.status(201).json({
+      message: "pdf uploaded and saved to DB",
+      content: newContent,
+    });
+  } catch (err) {
+    console.error("Error uploading image:", err);
+    res.status(500).json({ error: "Upload failed" });
+  }
+});
 // ROUTES
 
 // Signup

@@ -29,6 +29,9 @@ const contentSchema=new mongoose.Schema({
         type:Date,
         default:Date.now,
     },
+          // Cloudinary URL
+      // Cloudinary public_id
+   
     tags:Array<String>,
     createDate:Date,
 
