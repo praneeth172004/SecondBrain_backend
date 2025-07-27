@@ -63,6 +63,36 @@ const pdfStorage = new CloudinaryStorage({
   },
 });
 
+//@ts-ignore
+app.get('/user/search', userMiddleware,async (req, res) => {
+  //@ts-ignore
+  const query = req.query.query
+  console.log(query);
+  
+
+  try {
+    let content;
+    //@ts-ignore
+    if (!query || query.trim() === '') {
+      // Return all content for the user
+      content = await Content.find({ userId: req.userId }).populate('userId', 'username');
+    } else {
+      // Return filtered content
+      content = await Content.find({
+        userId: req.userId,
+        title: { $regex: query, $options: 'i' },
+      }).populate('userId', 'username');
+    }
+
+    res.json({ content });
+  } catch (err) {
+    console.error('Search error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+  
+
+});
+
 export const uploadPDF = multer({ storage: pdfStorage });
 
 // Upload route
