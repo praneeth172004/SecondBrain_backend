@@ -35,7 +35,7 @@ cloudinary.config({
 const app = express();
 app.use(express.json());
 app.use(cors({
-  origin: ["https://second-brain-frontend-five.vercel.app","https://secondbran-frontend.vercel.app/", "https://second-brain-frontend-zruo.vercel.app", "http://localhost:5173"],
+  origin: ["https://second-brain-frontend-five.vercel.app","https://secondbran-frontend.vercel.app", "https://second-brain-frontend-zruo.vercel.app", "http://localhost:5173"],
   credentials: true,
 }));
 
