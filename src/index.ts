@@ -59,6 +59,7 @@ const pdfStorage = new CloudinaryStorage({
       resource_type: "auto", // auto-detects pdf/image/video
       format: file.mimetype === "application/pdf" ? "pdf" : undefined,
       public_id: file.originalname.split(".")[0],
+      access_mode: "public",
     };
   },
 });
