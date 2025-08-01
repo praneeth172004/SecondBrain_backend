@@ -51,18 +51,7 @@ const storage = new CloudinaryStorage({
 });
 const upload = multer({ storage });
 
-const pdfStorage = new CloudinaryStorage({
-  cloudinary,
-  params: (req, file) => {
-    return {
-      folder: "uploads",
-      resource_type: "auto", // auto-detects pdf/image/video
-      format: file.mimetype === "application/pdf" ? "pdf" : undefined,
-      public_id: file.originalname.split(".")[0],
-      access_mode: "public",
-    };
-  },
-});
+
 
 //@ts-ignore
 app.get('/user/search', userMiddleware,async (req, res) => {
@@ -94,7 +83,7 @@ app.get('/user/search', userMiddleware,async (req, res) => {
 
 });
 
-export const uploadPDF = multer({ storage: pdfStorage });
+
 
 // Upload route
 //@ts-ignore
@@ -129,35 +118,7 @@ app.post("/user/upload/image",userMiddleware, upload.single("image"), async (req
 });
 
 //@ts-ignore
-app.post("/user/upload/pdf",userMiddleware, uploadPDF.single("pdf"), async (req: Request, res: Response) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
-    }
 
-    const { title, tags, type } = req.body;
-
-    const newContent = new Content({
-      title,
-      tags,
-      type,
-      link: (req.file as any).path,          // Cloudinary image URL
-     
-      content: "pdf",                      // or any other field you use for identifying type
-      userId: req.userId,                    // assuming you're using auth middleware
-    });
-
-    await newContent.save();
-
-    res.status(201).json({
-      message: "pdf uploaded and saved to DB",
-      content: newContent,
-    });
-  } catch (err) {
-    console.error("Error uploading image:", err);
-    res.status(500).json({ error: "Upload failed" });
-  }
-});
 // ROUTES
 
 // Signup
