@@ -226,8 +226,10 @@ app.post("/user/share", userMiddleware, async (req: Request, res: Response) => {
 app.get("/user/share/:sharelink", async (req: Request, res: Response) => {
   const linkDoc = await Link.findOne({ hash: req.params.sharelink });
   if (!linkDoc) return res.status(404).json({ msg: "Invalid Share Link" });
-  const content = await Content.find({ userId: linkDoc.userId });
-  res.json({ content });
+  const userId=linkDoc.userId 
+  const content = await Content.find({ userId});
+  const user = await User.findById(userId).select("username email");
+  res.json({ content,user });
 });
 
 // Start Server
