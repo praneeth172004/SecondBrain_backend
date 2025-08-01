@@ -177,6 +177,24 @@ app.post("/user/signup", async (req: Request, res: Response) => {
     res.status(500).json({ msg: "Internal server error" });
   }
 });
+
+
+app.get("/user/details", userMiddleware, async (req: Request, res: Response):Promise<any> => {
+  try {
+    const userId = req.userId;
+
+    const user = await User.findById(userId).select("username email");
+
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    res.status(200).json({ user });
+  } catch (err) {
+    console.error("Error in /user/details:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
 //@ts-ignore
 
 // Login
